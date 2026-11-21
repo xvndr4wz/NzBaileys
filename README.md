@@ -1,478 +1,454 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/DenixVynix-Baileys-blueviolet?style=for-the-badge" alt="DenixVynix Baileys"/>
-</p>
-
-<h1 align="center">🚀 DenixVynix Baileys</h1>
+# <div align='center'>PouCode</div>
 
 <p align="center">
-  <strong>Lightning-fast, rock-solid WhatsApp automation library</strong>
-  <br/>
-  Build powerful WhatsApp bots & integrations with WebSocket—zero browser overhead
+
+  <img src="https://files.catbox.moe/i497x5.jpg" width="180" alt="Pou"/>
+
 </p>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/node-%3E%3D20-brightgreen?style=flat-square" alt="Node 20+"/>
-  <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT License"/>
-  <img src="https://img.shields.io/badge/multi--device-✓-success?style=flat-square" alt="Multi-device Support"/>
-  <img src="https://img.shields.io/badge/websocket-native-orange?style=flat-square" alt="WebSocket Native"/>
-</p>
+<div align='center'>
+
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![GitHub](https://img.shields.io/badge/source-GitHub-black.svg)](https://github.com/pou-code/Baileys)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
+
+A WebSockets library for interacting with WhatsApp Web, maintained under the **PouCode** brand.
+This project is a fork built on top of [Baileys](https://github.com/WhiskeySockets/Baileys) by WhiskeySockets.
+
+</div>
 
 ---
 
-## ✨ Quick Overview
+## Installation
 
-DenixVynix Baileys is a **high-performance** TypeScript/JavaScript library for WhatsApp automation. No browser? No problem. We handle WhatsApp's WebSocket protocol so you can focus on building amazing things.
+Requires **Node.js 20+** (this package is ESM-only; see [Import](#import)).
 
-**Perfect for:**
-- 🤖 WhatsApp Bots
-- 💬 Customer Service Automation
-- 🔗 Business Integrations
-- 📱 Multi-device WhatsApp Tools
-- ⚡ Real-time Message Processing
-
----
-
-## 📋 Table of Contents
-
-- [Features](#features)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-  - [QR Code Authentication](#qr-code-authentication)
-  - [Pairing Code Authentication](#pairing-code-authentication)
-- [Usage Examples](#usage-examples)
-- [API Overview](#api-overview)
-- [Configuration](#configuration)
-- [Technical Stack](#technical-stack)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [Official Channels](#official-channels)
-- [License](#license)
-
----
-
-## ✨ Features
-
-### Core Capabilities
-✅ **WebSocket-based** — Direct WhatsApp connection, no browser required  
-✅ **Multi-device** — Full support for WhatsApp multi-device mode  
-✅ **QR & Pairing Code** — Multiple authentication methods  
-✅ **Message Management** — Send, receive, edit, delete messages seamlessly  
-✅ **Group Administration** — Create, manage, moderate groups  
-✅ **Interactive Features** — Buttons, lists, templates, and more  
-✅ **Session Persistence** — Automatic reconnection & state management  
-✅ **High Performance** — Lightweight & modular architecture  
-
-### Advanced Features
-- 🔐 End-to-end encryption support
-- 📞 Call handling & notifications
-- 👥 Contact & group management
-- 💾 Built-in session storage
-- 🌐 Business account compatibility
-- 🎯 Precise message timestamps
-- 🔄 Event-driven architecture
-
----
-
-## 📦 Installation
-
-### npm
+From the npm registry (once published):
 ```bash
-npm install @denzz221/baileys
+npm install @poucode/baileys
 ```
 
-### yarn
+Directly from GitHub:
 ```bash
-yarn add @denzz221/baileys
+npm install github:pou-code/Baileys
 ```
 
-### pnpm
-```bash
-pnpm add @denzz221/baileys
-```
-
-### Using Package Alias
-If you need compatibility with existing code using `@whiskeysockets/baileys`:
-
+Or add it to your `package.json` manually:
 ```json
-{
-  "dependencies": {
-    "@whiskeysockets/baileys": "npm:@denzz221/baileys"
-  }
+"dependencies": {
+  "@poucode/baileys": "latest"
 }
 ```
 
----
+Already have a bot built on the original `@whiskeysockets/baileys` and don't want to change every
+`require`/`import` in your codebase? Alias the dependency name instead, so the original package
+name points to this fork:
+```json
+"dependencies": {
+  "@whiskeysockets/baileys": "npm:poucode/baileys"
+}
+```
+With this alias, keep using `require('@whiskeysockets/baileys')` in your code as-is — npm will
+resolve it to this fork under the hood.
 
-## 🚀 Quick Start
+You can also pin to a specific branch or commit:
+```bash
+npm install github:pou-code/Baileys#main
+```
 
-### QR Code Authentication
+## Import
 
-The simplest way to get started:
+ESM (works on every supported Node.js version):
+```javascript
+import makeWASocket, { Browsers, DisconnectReason } from '@poucode/baileys';
+```
 
+CommonJS: the package is ESM-only, so `require()` only works on Node.js 22.12+ or 20.19+
+(Node's `require(esm)` support). On older versions use `import` instead.
 ```javascript
 const {
   default: makeWASocket,
-  DisconnectReason,
-  useMultiFileAuthState,
-} = require('@denzz221/baileys');
-const { Boom } = require('@hapi/boom');
-
-async function connectWhatsApp() {
-  const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
-  
-  const sock = makeWASocket({
-    auth: state,
-    printQRInTerminal: true,
-  });
-
-  sock.ev.on('connection.update', (update) => {
-    const { connection, lastDisconnect } = update;
-    
-    if (connection === 'close') {
-      const shouldReconnect =
-        (lastDisconnect.error instanceof Boom)?.output?.statusCode !==
-        DisconnectReason.loggedOut;
-      
-      console.log('Connection closed. Reconnecting:', shouldReconnect);
-      if (shouldReconnect) connectWhatsApp();
-    } else if (connection === 'open') {
-      console.log('✅ Connected!');
-    }
-  });
-
-  sock.ev.on('messages.upsert', async (m) => {
-    const msg = m.messages[0];
-    
-    if (!msg.key.fromMe && msg.message?.conversation) {
-      console.log('📨 New message:', msg.message.conversation);
-      
-      // Echo the message back
-      await sock.sendMessage(msg.key.remoteJid, {
-        text: 'Echo: ' + msg.message.conversation,
-      });
-    }
-  });
-
-  sock.ev.on('creds.update', saveCreds);
-}
-
-connectWhatsApp();
-```
-
-### Pairing Code Authentication
-
-For headless environments or deployment:
-
-```javascript
-const {
-  default: makeWASocket,
-  fetchLatestWAWebVersion,
-} = require('@denzz221/baileys');
-
-async function connectWithPairingCode() {
-  const sock = makeWASocket({
-    version: await fetchLatestWAWebVersion(),
-    printQRInTerminal: false, // Disable QR
-  });
-
-  sock.ev.on('connection.update', async (update) => {
-    const { connection } = update;
-    
-    if (connection === 'open') {
-      console.log('✅ Connected!');
-    }
-  });
-
-  // Request pairing code
-  const phoneNumber = '62812345678'; // Your WhatsApp number
-  const code = await sock.requestPairingCode(phoneNumber.trim());
-  
-  console.log(`📱 Pairing Code: ${code}`);
-  // Share this code with the user to enter in their WhatsApp
-}
-
-connectWithPairingCode();
+  // other exports
+} = require('@poucode/baileys');
 ```
 
 ---
 
-## 💡 Usage Examples
+# Connecting To WhatsApp
 
-### Sending Messages
-
+## With QR Code
 ```javascript
-// Simple text message
-await sock.sendMessage('628XXXXXXXXX@s.whatsapp.net', {
-  text: 'Hello from DenixVynix Baileys!',
+const {
+  default: makeWASocket,
+  Browsers
+} = require('@poucode/baileys');
+
+const client = makeWASocket({
+  browser: Browsers.poucode('Chrome')
 });
 
-// Message with mentions
-await sock.sendMessage(chatId, {
-  text: 'Hey @user check this out!',
-  mentions: [userJid],
-});
-
-// With participant receipt
-await sock.sendMessage(chatId, {
-  text: 'Message sent!',
-}, { 
-  ptcp: true  // Enable participant receipts
+// `printQRInTerminal` is deprecated: the QR string now arrives via connection.update.
+// Render it with your own QR library (e.g. qrcode-terminal) if you want it in the terminal.
+client.ev.on('connection.update', ({ connection, qr }) => {
+  if (qr) console.log('Scan this QR string:', qr);
+  if (connection === 'open') console.log('Connected');
 });
 ```
 
-### Handling Group Messages
+## Connect With Pairing Code
+```javascript
+const {
+  default: makeWASocket,
+  fetchLatestWaWebVersion,
+  Browsers
+} = require('@poucode/baileys');
+
+async function start() {
+  // fetchLatestWaWebVersion() resolves to { version, isLatest, error? }
+  const { version } = await fetchLatestWaWebVersion();
+
+  const client = makeWASocket({
+    browser: Browsers.poucode('Chrome'),
+    printQRInTerminal: false,
+    version,
+    aiLabel: false // set true to show an AI label on messages sent by the bot
+    // other options
+  });
+
+  const number = "628XXXXXXXXXX";
+  const code = await client.requestPairingCode(number.trim()); // or (number, "YYYYYYYY") for a custom pairing code
+
+  console.log("Your pairing code: " + code);
+}
+
+start();
+```
+
+# Storing Data
+```javascript
+const {
+  default: makeWASocket,
+  makeInMemoryStore
+} = require('@poucode/baileys');
+const pino = require('pino');
+
+const store = makeInMemoryStore({
+  logger: pino().child({ level: 'silent', stream: 'store' })
+});
+const client = makeWASocket({
+  // options
+});
+store.bind(client.ev);
+
+client.ev.on('contacts.upsert', () => {
+  console.log('New contact: ' + Object.values(store.contacts()));
+});
+```
+
+# Sending Messages
+
+## Send / relay a message with `noSelfSync`
+
+`noSelfSync` is a `relayMessage` option (private/1-on-1 chats only) that controls whether the
+message is also synced to your **other own linked devices** (other phones/WhatsApp Web sessions
+logged into the same account). It does not affect delivery to the recipient.
+
+- **`noSelfSync: true`** — the message is sent to the recipient as normal, but is **not** synced
+  to your other own devices. Useful when you don't want a message to show up on your other
+  linked sessions (e.g. silent/automated sends from a bot account).
+- **`noSelfSync: false`** (default) — normal behavior. The message is sent to the recipient and
+  also synced to your other own devices, so it appears everywhere you're logged in, just like
+  sending from the official WhatsApp app.
 
 ```javascript
-sock.ev.on('messages.upsert', async (m) => {
-  const msg = m.messages[0];
-  
-  // Check if group message
-  if (msg.key.remoteJid.endsWith('@g.us')) {
-    console.log(`📢 Group: ${msg.key.remoteJid}`);
-    console.log(`👤 From: ${msg.key.participant}`);
-    
-    // Auto-respond to group messages
-    if (msg.message?.conversation?.includes('!hello')) {
-      await sock.sendMessage(msg.key.remoteJid, {
-        text: 'Hello everyone! 👋',
-      });
+// Sent to the recipient, but NOT synced to your other devices
+await client.relayMessage(m.chat, {
+  conversation: "Hello from PouCode"
+}, {
+  noSelfSync: true
+});
+
+// Sent to the recipient AND synced to your other devices (default behavior)
+await client.relayMessage(m.chat, {
+  conversation: "Hello from PouCode"
+}, {
+  noSelfSync: false
+});
+
+// Also works through sendMessage
+await client.sendMessage(m.chat, {
+  text: "Hello from PouCode"
+}, {
+  noSelfSync: true
+});
+```
+
+## Send an orderMessage
+```javascript
+const fs = require('fs');
+const thumbnail = fs.readFileSync('./pouthumb.jpg');
+
+await client.sendMessage(m.chat, {
+  thumbnail,
+  message: "Order summary",
+  orderTitle: "My Store",
+  totalAmount1000: 72502,
+  totalCurrencyCode: "IDR"
+}, { quoted: m });
+```
+
+## Send a pollResultSnapshotMessage
+```javascript
+await client.sendMessage(m.chat, {
+  pollResultMessage: {
+    name: "My Poll",
+    options: [
+      { optionName: "Option 1" },
+      { optionName: "Option 2" }
+    ],
+    newsletter: {
+      newsletterName: "0X8 - Society",
+      newsletterJid: "120363424944937940@newsletter"
     }
   }
 });
 ```
 
-### Status Updates
-
+## Send a productMessage
 ```javascript
-sock.ev.on('presence.update', (presenceUpdate) => {
-  console.log('Presence update:', presenceUpdate);
-  // Monitor online/offline status
-});
-
-sock.ev.on('chats.update', (chatUpdates) => {
-  chatUpdates.forEach(chat => {
-    console.log(`Chat updated: ${chat.id}`);
-  });
-});
-```
-
----
-
-## 🔧 API Overview
-
-### Connection Methods
-
-| Method | Returns | Purpose |
-|--------|---------|---------|
-| `makeWASocket(config)` | `WhatsAppSocket` | Create connection |
-| `requestPairingCode(number)` | `string` | Get pairing code |
-| `fetchLatestWAWebVersion()` | `string` | Get latest WA version |
-
-### Message API
-
-| Method | Usage |
-|--------|-------|
-| `sendMessage(jid, content)` | Send any message type |
-| `editMessage(jid, msgKey, content)` | Edit existing message |
-| `deleteMessage(jid, msgKey)` | Delete message |
-| `forwardMessage(jid, message)` | Forward message |
-
-### Events
-
-```javascript
-sock.ev.on('connection.update', handler)  // Connection status
-sock.ev.on('messages.upsert', handler)    // New messages
-sock.ev.on('message.update', handler)     // Message updates
-sock.ev.on('presence.update', handler)    // User status
-sock.ev.on('groups.upsert', handler)      // New groups
-sock.ev.on('chats.update', handler)       // Chat updates
-sock.ev.on('contacts.update', handler)    // Contact changes
-sock.ev.on('creds.update', handler)       // Credentials update
-```
-
----
-
-## ⚙️ Configuration
-
-### Basic Socket Configuration
-
-```javascript
-const sock = makeWASocket({
-  // Auth
-  auth: authState,
-  
-  // Browser identification
-  browser: Browsers.ubuntu('Chrome'),
-  
-  // QR display
-  printQRInTerminal: true,
-  
-  // Logging
-  logger: P(2),  // 0=verbose, 1=info, 2=warning
-  
-  // Connection
-  retryRequestDelayMs: 10_000,
-  maxRetries: 5,
-  
-  // Message handling
-  markOnlineOnConnect: true,
-  syncFullHistory: false,
-  
-  // Advanced
-  shouldSyncHistoryMessage: () => false,
-  shouldIgnoreJid: (jid) => jid.includes('status@broadcast'),
+await client.relayMessage(m.chat, {
+  productMessage: {
+    title: "Product.pdf",
+    description: "Product description",
+    thumbnail: { url: "./pouthumb.jpg" },
+    productId: "EXAMPLE_TOKEN",
+    retailerId: "EXAMPLE_RETAILER_ID",
+    url: "https://example.com",
+    body: "Body text",
+    footer: "Footer",
+    buttons: [
+      {
+        name: "cta_url",
+        buttonParamsJson: "{\"display_text\":\"Visit\",\"url\":\"https://example.com\"}"
+      }
+    ],
+    priceAmount1000: 72502,
+    currencyCode: "IDR"
+  }
 });
 ```
 
-### Browser Options
-
+## Send an interactiveMessage
 ```javascript
-const { Browsers } = require('@denzz221/baileys');
-
-// Different browser options
-Browsers.ubuntu('Chrome')           // Ubuntu + Chrome
-Browsers.ubuntu('Firefox')          // Ubuntu + Firefox
-Browsers.ubuntu('Edge')             // Ubuntu + Edge
-Browsers.macOS('Safari')            // macOS + Safari
-Browsers.windows('Edge')            // Windows + Edge
-```
-
----
-
-## 🛠️ Technical Stack
-
-- **Runtime**: Node.js 20+
-- **Language**: TypeScript/JavaScript
-- **Protocol**: WebSocket (WhatsApp Web Protocol)
-- **Architecture**: Event-driven
-- **Crypto**: End-to-end encryption compatible
-- **Session**: File-based or custom storage
-
-### System Requirements
-
-- Node.js ≥ 20.0
-- npm/yarn/pnpm
-- 100+ MB available memory
-- Stable internet connection
-- Active WhatsApp account
-
----
-
-## 🐛 Troubleshooting
-
-### Connection Issues
-
-**Problem**: Can't connect to WhatsApp  
-**Solution**: 
-- Clear `auth_info_baileys` folder
-- Check internet connection
-- Try pairing code instead of QR
-- Verify WhatsApp account is active
-
-### QR Code Not Showing
-
-**Problem**: QR code not printing in terminal  
-**Solution**:
-```javascript
-// Enable QR code
-const sock = makeWASocket({
-  printQRInTerminal: true,
-  qrTimeout: 60000, // Increase timeout
+await client.sendMessage(m.chat, {
+  image: { url: "./pouimg.jpg" },
+  text: "body",
+  title: "title", // required when sending media
+  footer: "footer",
+  interactiveButtons: [
+    {
+      name: "single_select",
+      buttonParamsJson: JSON.stringify({
+        title: "\0"
+      })
+    }
+  ],
+  messageParams: JSON.stringify({
+    bottom_sheet: {
+      /** other params **/
+    }
+  })
 });
 ```
 
-### Session Expires
-
-**Problem**: "Unauthorized" error after some time  
-**Solution**:
+## Send a member label
 ```javascript
-sock.ev.on('creds.update', async (creds) => {
-  // Ensure credentials are saved
-  await saveCreds();
+await client.sendMessage(m.chat, {
+  groupLabel: {
+    labelText: "Tagged members appear here"
+  }
 });
 ```
 
-### High CPU Usage
-
-**Problem**: Node.js consuming too much CPU  
-**Solution**:
-- Disable `syncFullHistory`
-- Reduce event listeners
-- Implement connection pooling
-- Use production log level
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Areas we need help with:
-
-- 🐛 Bug reports & fixes
-- 📚 Documentation improvements
-- ✨ New features
-- 🧪 Test coverage
-- 🌍 Translation support
-
-### Steps to Contribute
-
-1. Fork this repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
-
----
-
-## 📱 Official Channels
-
-Stay connected with the DenixVynix community:
-
-### WhatsApp
-🔗 [DenixVynix WhatsApp Channel](https://whatsapp.com/channel/0029VbEXzKLKAwEsOPPRpJ1z)
-
-### Telegram
-🔗 [DenixVynix Telegram](https://t.me/denzz221)
-
-### GitHub
-🔗 [GitHub Repository](https://github.com/denzz221)
-
-
-
----
-
-## 📄 License
-
-This project is licensed under the **MIT License** — feel free to use, modify, and distribute!
-
-```
-MIT License
-
-Copyright (c) 2026 DenixVynix
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software...
+## Send a message to group members
+```javascript
+await client.sendMessageMembers(m.chat, {
+  extendedTextMessage: {
+    text: "Hello members"
+  }
+}, {});
 ```
 
+# Simple sendMessage Helpers
+
+## Send text
+```javascript
+await client.sendText(m.chat, "Hello!", {
+  contextInfo: {
+    mentionedJid: [m.chat]
+  }
+}, {
+  key: {
+    remoteJid: "status@broadcast",
+    participant: m.sender,
+    fromMe: true
+  },
+  message: {
+    conversation: "\0"
+  }
+});
+```
+
+## Send image
+```javascript
+await client.sendImage(m.chat, { url: "./pouimg.jpg" }, "Caption", {
+  contextInfo: {
+    mentionedJid: [m.chat]
+  }
+}, {
+  key: {
+    remoteJid: "status@broadcast",
+    participant: m.sender,
+    fromMe: true
+  },
+  message: {
+    conversation: "\0"
+  }
+});
+```
+
+## Send video
+```javascript
+await client.sendVideo(m.chat, { url: "./video.mp4" }, "Caption", {
+  contextInfo: {
+    mentionedJid: [m.chat]
+  }
+}, {
+  key: {
+    remoteJid: "status@broadcast",
+    participant: m.sender,
+    fromMe: true
+  },
+  message: {
+    conversation: "\0"
+  }
+});
+```
+
+## Send audio
+```javascript
+await client.sendAudio(m.chat, { url: "./pouaudio.mp3" }, {
+  contextInfo: {
+    mentionedJid: [m.chat]
+  }
+}, {
+  key: {
+    remoteJid: "status@broadcast",
+    participant: m.sender,
+    fromMe: true
+  },
+  message: {
+    conversation: "\0"
+  }
+});
+```
+
+## Send location
+```javascript
+await client.sendLocation(m.chat, "Caption", 90.0, 90.0, "https://example.com", "1234567890", {
+  contextInfo: {
+    mentionedJid: [m.chat]
+  }
+}, {
+  key: {
+    remoteJid: "status@broadcast",
+    participant: m.sender,
+    fromMe: true
+  },
+  message: {
+    conversation: "\0"
+  }
+});
+```
+
+## Send poll
+```javascript
+await client.sendPoll(m.chat, "Pick one", ["1", "2", "3"], true, {
+  contextInfo: {
+    mentionedJid: [m.chat]
+  }
+}, {
+  key: {
+    remoteJid: "status@broadcast",
+    participant: m.sender,
+    fromMe: true
+  },
+  message: {
+    conversation: "\0"
+  }
+});
+```
+
+## Send quiz
+```javascript
+await client.sendQuiz(m.chat, "Quiz question", ["1", "2", "3"], "2", {
+  contextInfo: {
+    mentionedJid: [m.chat]
+  }
+}, {
+  key: {
+    remoteJid: "status@broadcast",
+    participant: m.sender,
+    fromMe: true
+  },
+  message: {
+    conversation: "\0"
+  }
+});
+```
+
+## Send status mention
+```javascript
+await client.statusMention(m.chat, {
+  extendedTextMessage: {
+    text: "Mentioned in status"
+  }
+});
+```
+
 ---
 
-## 🙏 Credits
+# Merged Features (1.1.0)
 
-DenixVynix Baileys is maintained and developed by the **DenixVynix Team** with contributions from the amazing open-source community.
+WaBail 1.1.0 merges the extra layers of the `wbails` fork on top of the PouCode core:
 
----
+- `sock.*` privacy, interop, GraphQL/Wamo and message-builder layers (see `lib/Socket/privacy.js`, `interop.js`, `graphql.js`, `message-builder.js`)
+- Extra USync protocols: business, picture, text status, sidelist, feature (`lib/WAUSync/`)
+- Sticker pack messages (`{ stickerPacks: {...} }`) and sticker metadata helpers (`lib/Utils/sticker.js`, needs `ffmpeg` in `PATH` for sticker conversion)
+- `useSqliteAuthState` (needs Node 22.5+ because it uses `node:sqlite`; loaded lazily, so Node 20 is unaffected unless you call it)
+- `makeInMemoryStore` persistence helpers: `writeToFile`, `readFromFile`, `writeToFileInterval`
+- 1:1 `cstoken` fallback: stores the NCT salt from app-state sync and attaches `cstoken` on private sends that have no `tctoken`. Disable per message with `{ cstoken: false }`.
 
-<p align="center">
-  <br/>
-  <strong>Made with ❤️ by DenixVynix</strong>
-  <br/>
-  <sub>WhatsApp Automation Made Simple</sub>
-  <br/><br/>
-  <a href="https://github.com/denzz221/baileys">⭐ Star us on GitHub</a>
-  •
-  <a href="#contributing">Contribute</a>
-  •
-  <a href="https://t.me/denzz221">creator</a>
-</p>
+The newsletter implementation is the one from WaBail (`lib/Socket/newsletter.js`) and is used unchanged.
+
+## Private chat vs group notes
+
+- Reply to `msg.key.remoteJid` as-is. In private chats it can be `@lid`; the phone-number form is in `msg.key.remoteJidAlt`.
+- In groups the sender is `msg.key.participant` (alt in `msg.key.participantAlt`).
+- If a send to a user cannot resolve any of the recipient's devices, `relayMessage` now throws `421` instead of silently reporting success.
+
+# Credits
+
+PouCode is a fork of [Baileys](https://github.com/WhiskeySockets/Baileys), originally created by
+[Adhiraj Singh](https://github.com/adiwajshing) and maintained by the WhiskeySockets community.
+All credit for the underlying protocol implementation goes to the original authors and contributors.
+See [LICENSE](LICENSE) for the full license text and copyright notices.
+
+# Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on reporting issues and submitting pull requests.
+
+# Disclaimer
+
+This is **not** an official WhatsApp product. Use of this library to send bulk or unsolicited messages
+may violate WhatsApp's Terms of Service and can result in your number being banned. Use responsibly.
